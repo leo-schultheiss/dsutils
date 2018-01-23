@@ -97,3 +97,7 @@ def dfcat2dummy(train, test, only_keep_mutual=False):
 
     
     return train, test
+
+
+def base_main():
+    print 'pass'

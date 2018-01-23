@@ -7,12 +7,14 @@
 #except:
 #    print('python3')
 
-from .base import PipelineLDA
-from .base import main as LDA_main
+from .base import string2second, extract_date, dfcat2n, dfcat2dummy, base_main
 
+__version__ = '0.1'
+__license__ = 'MIT'
 
+__all__ = ['string2second', 'extract_date', 'dfcat2n', 'dfcat2dummy']
 
 def main():
     print 'executing...'
-    LDA_main()
+    base_main()
 
