@@ -98,6 +98,16 @@ def dfcat2dummy(train, test, only_keep_mutual=False):
     
     return train, test
 
+def strtimeconv(timestr, infmt, outfmt):
+    """
+    time_string, input_format, output_format
+    comvert a string date/time representation to another string with new format
+    e.g. format = '%d/%m/%y' represents input format '23/08/17'
+    format examples: 
+    https://www.ibm.com/support/knowledgecenter/en/SSEPCD_10.1.0/com.ibm.ondemand.mp.doc/arsa0257.htm
+    
+    """  
+    return strftime(outfmt, strptime(timestr, infmt))
 
 def base_main():
     print 'pass'

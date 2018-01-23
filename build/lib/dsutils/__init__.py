@@ -7,12 +7,12 @@
 #except:
 #    print('python3')
 
-from .base import string2second, extract_date, dfcat2n, dfcat2dummy, base_main
+from .base import string2second, extract_date, dfcat2n, dfcat2dummy, base_main, strtimeconv
 
 __version__ = '0.1'
 __license__ = 'MIT'
 
-__all__ = ['string2second', 'extract_date', 'dfcat2n', 'dfcat2dummy']
+__all__ = ['string2second', 'extract_date', 'dfcat2n', 'dfcat2dummy', 'strtimeconv']
 
 def main():
     print 'executing...'
