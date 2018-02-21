@@ -13,6 +13,11 @@ from sklearn import model_selection
 from time import strftime, strptime, mktime, time, ctime
 
 
+def batchshape(*x):
+    """print shapes of items that have `.shape` """
+    return [i.shape for i in x]
+
+
 def string2second(dt, fmt):
     """
     comvert a string date/time representation to seconds (seconds since the Epoch)
@@ -58,10 +63,10 @@ def dfcat2n(train, test):
 
     train['Cat']=0
     test['Cat']=1
-    print train.shape, test.shape
+    print (train.shape, test.shape)
     
     comb = pd.concat([train, test])
-    print comb.shape
+    print (comb.shape)
 
     for i in comb.select_dtypes('object'):
         comb[i] = pd.factorize(comb[i])[0]
@@ -79,7 +84,7 @@ def dfcat2dummy(train, test, only_keep_mutual=False):
     """        
     train = train.fillna(axis=1, value=-1)
     test = test.fillna(axis=1, value=-1)
-    print train.shape, test.shape
+    print (train.shape, test.shape)
 
     train = train.get_dummies(df)
     test = pd.get_dummies(test)
@@ -88,11 +93,11 @@ def dfcat2dummy(train, test, only_keep_mutual=False):
         mul = list(set(df.columns)&set(test.columns))
         train = train.reindex(columns = mul, fill_value=0)
         test = test.reindex(columns = mul, fill_value=0)
-        print train.shape, test.shape
+        print (train.shape, test.shape)
         
     else:
         test = test.reindex(columns = train.columns, fill_value=0)
-        print train.shape, test.shape
+        print (train.shape, test.shape)
     
 
     
@@ -110,4 +115,4 @@ def strtimeconv(timestr, infmt, outfmt):
     return strftime(outfmt, strptime(timestr, infmt))
 
 def base_main():
-    print 'pass'
+    print ('pass')
