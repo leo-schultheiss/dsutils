@@ -2,7 +2,9 @@ README.rst
 setup.py
 dsutils/__init__.py
 dsutils/base.py
+dsutils/exploratory.py
 dsutils/jupyter.py
+dsutils/preprocess.py
 dsutils.egg-info/PKG-INFO
 dsutils.egg-info/SOURCES.txt
 dsutils.egg-info/dependency_links.txt
