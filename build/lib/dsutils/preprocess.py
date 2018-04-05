@@ -16,12 +16,17 @@ class PreprocessDataFrame(object):
         self.train.columns = map(lambda x: x.strip(), self.train.columns)
         
         print(self.train.shape)
-        self.stdnorm={}
-        self.lbencode={}
-        self.del_cols=[]
-        self.dummies=[]
-        self.pca={}
-        self.cluster={}
+        self._stdnorm={}
+        self._lbencode={}
+        self._del_cols=[]
+        self._dummies=[]
+        self._pca={}
+        self._cluster={}
+        # taxi project: keep original total_amount
+        try:
+            self._train_totamt = self.train['Total_amount']
+        except:
+            pass
         
         try:
             testdf.shape
@@ -33,6 +38,12 @@ class PreprocessDataFrame(object):
         self.test=testdf.copy()
         self.test.columns = map(lambda x: x.strip(), self.test.columns)
         
+        # taxi project: keep original total_amount
+        try:
+            self._test_totamt = self.test['Total_amount']
+        except:
+            pass        
+        
         print (self.test.shape)
         
     def rm_null(self, threshold=0.995):
@@ -42,7 +53,7 @@ class PreprocessDataFrame(object):
             if self.train[i].isnull().sum()>n*threshold:
                 print('remove column '+i)
                 _ = self.train.pop(i)
-                self.del_cols.append(i)
+                self._del_cols.append(i)
         print('after ',self.train.shape)
 
 
@@ -106,7 +117,7 @@ class PreprocessDataFrame(object):
             if self.train[i].value_counts().max()>n*threshold:
                 print('remove column '+i)
                 _ = self.train.pop(i)
-                self.del_cols.append(i)
+                self._del_cols.append(i)
         print('after ',self.train.shape)
 
     def dummy_train(self, cols, rmOne=False):
@@ -116,13 +127,13 @@ class PreprocessDataFrame(object):
             self.train = pd.concat([self.train, pd.get_dummies(self.train[i], prefix=i.strip()).iloc[:,flag:]], axis=1)
             _ = self.train.pop(i)
             print('processing '+i)
-            self.dummies.append(i)
+            self._dummies.append(i)
         print('after ',self.train.shape)
 
     def dummy_test(self, rmOne=False):
         print('before',self.test.shape)
         flag=1 if rmOne else 0
-        for i in self.dummies:
+        for i in self._dummies:
             self.test = pd.concat([self.test, pd.get_dummies(self.test[i], prefix=i.strip()).iloc[:,flag:]], axis=1)
             _ = self.test.pop(i)
             print('processing '+i)
@@ -134,15 +145,15 @@ class PreprocessDataFrame(object):
             print('scaling '+i)
             scaler = StandardScaler()
             self.train[i]=scaler.fit_transform(self.train[i].values.reshape(-1,1))
-            self.stdnorm[i]=scaler
+            self._stdnorm[i]=scaler
             
     def test_stdnorm(self):
-        if not self.stdnorm: print('train_stdnorm on training data first')
+        if not self._stdnorm: print('train_stdnorm on training data first')
         try:
             self.test.shape
-            for i in self.stdnorm:
+            for i in self._stdnorm:
                 print ('scaleing '+i)
-                self.test[i] = self.stdnorm[i].transform(self.test[i].values.reshape(-1,1))
+                self.test[i] = self._stdnorm[i].transform(self.test[i].values.reshape(-1,1))
         except Exception as e:
             print (e)
             print ('add test data first')
@@ -152,15 +163,15 @@ class PreprocessDataFrame(object):
             print('label encoding '+i)
             lb = LabelEncoder()
             self.train[i]=lb.fit_transform(self.train[i])
-            self.lbencode[i]=lb          
+            self._lbencode[i]=lb          
 
     def test_labelencode(self):
-        if not self.lbencode: print('train_labelencode on training data first')
+        if not self._lbencode: print('train_labelencode on training data first')
         try:
             self.test.shape
-            for i in self.lbencode:
+            for i in self._lbencode:
                 print ('label encoding '+i)
-                self.test[i] = self.lbencode[i].transform(self.test[i])
+                self.test[i] = self._lbencode[i].transform(self.test[i])
         except Exception as e:
             print (e)
             print ('add test data first')             
@@ -262,14 +273,27 @@ class PreprocessDataFrame(object):
             except:
                 print ('no test data')                    
             
-    def rm_cols(self, cols):
-        try:
-            self.train.shape
-            for i in cols:
-                _ = self.train.pop(i)
-                self.del_cols.append(i)
-        except:
-            print ('no train data')
+    def rm_cols(self, cols, test=False):
+        """remove features(cols) from dataFrame"""
+        if not test:
+            print('remove cols from training set')
+            try:
+                self.train.shape
+                for i in cols:
+                    _ = self.train.pop(i)
+                    self._del_cols.append(i)
+            except:
+                print ('no train data')
+        else:
+            print('remove cols from test set')
+            for j in cols:
+                _ = self.test.pop(j)
+    
+    def rm_delcols_test(self):
+        """remove training data deleted cols from test data as well"""
+        print ("""remove training data deleted cols from test data as well""")
+        for i in self._del_cols:
+            _ = self.test.pop(i)
                 
                
     def taxi_train_pcaXY(self):
@@ -281,7 +305,7 @@ class PreprocessDataFrame(object):
             
         pca=PCA(2)    
         pca.fit(np.concatenate(coll))
-        self.pca['PCA']=pca
+        self._pca['PCA']=pca
         
         pca_pickup  = pca.transform(self.train[xy[0]])
         pca_dropoff = pca.transform(self.train[xy[1]])
@@ -307,7 +331,7 @@ class PreprocessDataFrame(object):
     def taxi_test_pcaXY(self):
         print ('adding PCA of XY coordinates to test data')
         xy=[['Pickup_longitude', 'Pickup_latitude'], ['Dropoff_longitude', 'Dropoff_latitude']]
-        pca=self.pca['PCA']
+        pca=self._pca['PCA']
 
         pca_pickup  = pca.transform(self.test[xy[0]])
         pca_dropoff = pca.transform(self.test[xy[1]])        
@@ -329,7 +353,7 @@ class PreprocessDataFrame(object):
         
         coll = np.vstack(coll)
         km = MiniBatchKMeans(n_clusters=cluster, batch_size=10000).fit(coll)     
-        self.cluster['KMean']=km
+        self._cluster['KMean']=km
         
         print('training used {:.2f} s'.format(time()-start))
         
@@ -340,10 +364,11 @@ class PreprocessDataFrame(object):
         
     def taxi_test_clusterKM(self):
         """add new feature by clustering XY on test data"""
+        print("""add new feature by clustering XY on test data""")
         xy=[['Pickup_longitude', 'Pickup_latitude'], ['Dropoff_longitude', 'Dropoff_latitude']]
         start=time()
             
-        km = self.cluster['KMean']
+        km = self._cluster['KMean']
         
        
         self.test['cluster_pickup'] = km.predict(self.test[xy[0]])
@@ -381,7 +406,20 @@ class PreprocessDataFrame(object):
                 self.test['duration_sec'] = (self.test['Lpep_dropoff_datetime'] - self.test['lpep_pickup_datetime']).dt.seconds    
 
     def taxi_addTipPct(self, test=False):    
-        pass
+        if not test:
+            self.train['Tip_pct'] = (self.train['Tip_amount']/self.train['Total_amount'])*100
+            self.train['Tip_pct'] = self.train['Tip_pct'].fillna(0)
+            self.train['Tip_pct'] = self.train['Tip_pct'].apply(lambda x: 1 if x>1 else x)
+        else:
+            self.test['Tip_pct'] = (self.test['Tip_amount']/self.test['Total_amount'])*100
+            self.test['Tip_pct'] = self.test['Tip_pct'].fillna(0)
+            self.test['Tip_pct'] = self.test['Tip_pct'].apply(lambda x: 1 if x>1 else x)            
+    
+    def remove_data(self):
+        """for space purose remove train & test data and keeping trained models and parameters (scaler, PCA, kmeans, etc)"""
+        print("""remove train & test data and keeping trained models and parameters (scaler, PCA, kmeans, etc)""")
+        self.train=None
+        self.test=None
         
 
         
