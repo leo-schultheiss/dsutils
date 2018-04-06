@@ -20,7 +20,7 @@ with open(os.path.join(_HERE, 'README.rst'),'r+') as fh:
 
 setup(
     name = "dsutils",
-    version = "0.1.3",
+    version = "0.1.4",
     description = "data science utils for data preprocessing for feeding various models, pipelining, time data format converting",
     long_description = long_description,
     author = "Shichao(Richard) Ji",

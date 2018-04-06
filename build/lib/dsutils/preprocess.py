@@ -5,6 +5,7 @@ import numpy as np
 from time import time
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.decomposition import PCA
 
@@ -18,6 +19,7 @@ class PreprocessDataFrame(object):
         print(self.train.shape)
         self._stdnorm={}
         self._lbencode={}
+        self._onehot={}
         self._del_cols=[]
         self._dummies=[]
         self._pca={}
@@ -141,6 +143,7 @@ class PreprocessDataFrame(object):
         
         
     def train_stdnorm(self, cols):
+        
         for i in cols:
             print('scaling '+i)
             scaler = StandardScaler()
@@ -177,8 +180,40 @@ class PreprocessDataFrame(object):
             print ('add test data first')             
             
             
-
+    def train_Onehot(self, cols, rmOne=False):
+        """make dummies with Onehot encoding from sklearn (After label encoding)"""
+        print('before',self.train.shape)
+        flag=1 if rmOne else 0
+        
+        for i in cols:
+            print('Onehot encoding '+i)
+            oh=OneHotEncoder(handle_unknown='ignore')
+            x = oh.fit_transform(self.train[i].values.reshape(-1,1)).todense()
+            x_cols=[i+'_'+str(j) for j in range(1,x.shape[1]+1)]
+            X=pd.DataFrame(x, columns=x_cols).iloc[:,flag:]
             
+            self.train = pd.concat([self.train, pd.DataFrame(X, columns=x_cols)], axis=1)
+            _ = self.train.pop(i)
+            self._onehot[i]=oh
+            
+        print('after',self.train.shape)
+        
+    def test_Onehot(self, rmOne=False):
+        """make dummies with Onehot encoding from sklearn (After label encoding) on testing data"""
+        print('before',self.test.shape)
+        for i in self._onehot:
+            print('Onehot encoding '+i)
+            oh=self._onehot[i]
+            
+            x = oh.transform(self.test[i].values.reshape(-1,1)).todense()
+            x_cols=[i+'_'+str(j) for j in range(1,x.shape[1]+1)]
+            X=pd.DataFrame(x, columns=x_cols)
+            
+            self.test = pd.concat([self.test, pd.DataFrame(X, columns=x_cols)], axis=1)
+            _ = self.test.pop(i)
+            
+        print('after',self.test.shape)   
+        
     def taxi_add_xy_distance(self, test=False):
         
         try:
