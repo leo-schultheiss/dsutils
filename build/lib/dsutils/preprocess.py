@@ -421,7 +421,15 @@ class PreprocessDataFrame(object):
         self.train=None
         self.test=None
         
-
+    def chkRm_TrainTestDiff(self):
+        """check and remove feature diff from test on train"""
+        print("""check and remove feature diff from test on train""")
+        print('train shape',self.train.shape)
+        print('test shape',self.test.shape)
+        flag = self.test.equals(self.test[self.train.columns])
+        print ('train and test features are the same:',flag)
+        self.test = self.test if flag else self.test[self.train.columns]
+        
         
         
 def plot_cluster(train,  N=None):
