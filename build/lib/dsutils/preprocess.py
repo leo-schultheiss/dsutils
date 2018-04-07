@@ -27,12 +27,15 @@ class PreprocessDataFrame(object):
         # taxi project: keep original total_amount
         try:
             self._train_totamt = self.train['Total_amount']
+            print("taxi project: save original total_amount data to _train_totamt")
         except:
             pass
         
         try:
             testdf.shape
             self.test.columns = map(lambda x: x.strip(), self.test.columns)
+            self._test_totamt = self.test['Total_amount']
+            print("taxi project: save original total_amount data to _test_totamt")
         except:
             self.test=testdf
         
@@ -43,11 +46,29 @@ class PreprocessDataFrame(object):
         # taxi project: keep original total_amount
         try:
             self._test_totamt = self.test['Total_amount']
+            print("taxi project: save original total_amount data to _test_totamt")
+            
         except:
             pass        
         
         print (self.test.shape)
-        
+    
+    def abs_posCols(self, cols, test=False):
+        """abs cols should be all positives"""
+        print("""abs cols should be all positives""")
+        if not test:
+            for i in cols:
+                ngn=(self.train[i]<0).sum()
+                if ngn>0:
+                    self.train[i]=self.train[i].apply(abs)
+                    print('negative found:',i,ngn)
+        else:
+            for i in cols:
+                ngn=(self.test[i]<0).sum()
+                if ngn>0:
+                    self.test[i]=self.test[i].apply(abs)
+                    print('negative found:',i,ngn)
+                    
     def rm_null(self, threshold=0.995):
         print('before',self.train.shape)
         n=self.train.shape[0]
@@ -465,6 +486,151 @@ class PreprocessDataFrame(object):
         print ('train and test features are the same:',flag)
         self.test = self.test if flag else self.test[self.train.columns]
         
+
+    #green taxi project, preprocess training data
+    #pre-defined input, e.g.to_be_normalize_cols, can be replaced when calling the method
+    def Taxi_train_preprocess(self, add_XYdistance=True, kp_all_positive=False,
+                              pos_cols = ['Passenger_count', 'Trip_distance', 'Fare_amount', 'Extra', 'MTA_tax', 'Tip_amount',\
+                                                'Tolls_amount', 'improvement_surcharge', 'Total_amount'],
+                              to_be_normalize_cols = [u'lpep_pickup_datetime', u'Lpep_dropoff_datetime', u'Pickup_longitude',\
+                                                        u'Pickup_latitude', u'Dropoff_longitude', u'Dropoff_latitude', u'Passenger_count',\
+                                                        u'Trip_distance', u'Fare_amount', u'Extra', u'MTA_tax', u'Tolls_amount',\
+                                                        u'improvement_surcharge', u'Total_amount', u'duration_min', u'speed', \
+                                                        u'xydistance', u'xyPCA_pickup1', u'xyPCA_pickup2', u'xyPCA_dropoff1',\
+                                                        u'xyPCA_dropoff2', u'cluster_pickup', u'cluster_dropoff', u'pickup_weekday',\
+                                                        u'pickup_hour'],\
+                              to_be_dummies_cols = [u'VendorID', u'Store_and_fwd_flag',\
+                                                    u'RateCodeID', u'Trip_type', u'Payment_type']):
+        
+        
+        """green taxi project, preprocess training data"""
+        import warnings
+        warnings.filterwarnings("ignore") 
+        
+        print('preprocessing training data set')
+        start=time()
+        print("\n1/14 remove null values (>99%)")
+        self.rm_null()    
+
+        print("\n2/14 absolute features should be all positives")
+        if kp_all_positive:
+            self.abs_posCols(pos_cols, test=False)
+
+        print("\n3/14 impute missing value as mode")
+        self.imput_missing(kind='mode', test=False)
+
+        print("\n4/14 parse date cols")
+        self.parse_date(['lpep_pickup_datetime', 'Lpep_dropoff_datetime'], test=False)
+
+        print("\n5/14 remove latitude and longitude outliers")
+        self.taxi_rmXYoutliers(test=False)
+
+        print("\n6/14 add duration minutes")
+        self.taxi_addDuration(test=False)
+
+        print("\n7/14 add speed")
+        self.taxi_addSpeed(test=False)
+
+        print("\n8/14 add coordinate distance (need external library geopy)")
+        if add_XYdistance:
+            self.taxi_add_xy_distance(test=False)
+        else:
+            to_be_normalize_cols.remove("xydistance")
+            
+        print("\n9/14 add hour of a day")
+        self.taxi_addhour(test=False)
+
+        print("\n10/14 add weekday")
+        self.taxi_addweekday(test=False)
+
+        print("\n11/14 apply PCA to latitude and longitude")
+        self.taxi_train_pcaXY()
+
+        print("\n12/14 apply K-mean cluster to latitude & longitude")
+        self.taxi_train_clusterKM()
+
+        print("\n13/14 scaling features")
+        self.train_stdnorm(to_be_normalize_cols)
+
+        print("\n14/14 One Hot encoding features")
+        self.dummy_train(to_be_dummies_cols)
+
+        print('Done!')
+        print('Total time {:.2f} s'.format(time()-start))        
+
+        
+        
+    #green taxi project, preprocess testing data
+    #pre-defined input, e.g.to_be_normalize_cols, can be replaced when calling the method
+    def Taxi_test_preprocess(self, add_XYdistance=True, kp_all_positive=False,
+                              pos_cols = ['Passenger_count', 'Trip_distance', 'Fare_amount', 'Extra', 'MTA_tax', 'Tip_amount',\
+                                                'Tolls_amount', 'improvement_surcharge', 'Total_amount'],
+                              to_be_normalize_cols = [u'lpep_pickup_datetime', u'Lpep_dropoff_datetime', u'Pickup_longitude',\
+                                                        u'Pickup_latitude', u'Dropoff_longitude', u'Dropoff_latitude', u'Passenger_count',\
+                                                        u'Trip_distance', u'Fare_amount', u'Extra', u'MTA_tax', u'Tolls_amount',\
+                                                        u'improvement_surcharge', u'Total_amount', u'duration_min', u'speed', \
+                                                        u'xydistance', u'xyPCA_pickup1', u'xyPCA_pickup2', u'xyPCA_dropoff1',\
+                                                        u'xyPCA_dropoff2', u'cluster_pickup', u'cluster_dropoff', u'pickup_weekday',\
+                                                        u'pickup_hour'],\
+                              to_be_dummies_cols = [u'VendorID', u'Store_and_fwd_flag',\
+                                                    u'RateCodeID', u'Trip_type', u'Payment_type']):
+        
+        
+        """green taxi project, preprocess training data"""
+        import warnings
+        warnings.filterwarnings("ignore") 
+        
+        print('preprocessing testing data set')
+        start=time()
+        print("\n1/14 remove deleted cols from test")
+        self.rm_delcols_test()    
+
+        print("\n2/14 absolute features should be all positives")
+        if kp_all_positive:
+            self.abs_posCols(pos_cols, test=True)
+
+        print("\n3/14 impute missing value as mode")
+        self.imput_missing(kind='mode', test=True)
+
+        print("\n4/14 parse date cols")
+        self.parse_date(['lpep_pickup_datetime', 'Lpep_dropoff_datetime'], test=True)
+
+        print("\n5/14 remove latitude and longitude outliers")
+        self.taxi_rmXYoutliers(test=True)
+
+        print("\n6/14 add duration minutes")
+        self.taxi_addDuration(test=True)
+
+        print("\n7/14 add speed")
+        self.taxi_addSpeed(test=True)
+
+        print("\n8/14 add coordinate distance (need external library geopy)")
+        if add_XYdistance:
+            self.taxi_add_xy_distance(test=True)
+        else:
+            to_be_normalize_cols.remove("xydistance")
+            
+
+        print("\n9/14 add hour of a day")
+        self.taxi_addhour(test=True)
+
+        print("\n10/14 add weekday")
+        self.taxi_addweekday(test=True)
+
+        print("\n11/14 apply PCA to latitude and longitude on test data")
+        self.taxi_test_pcaXY()
+
+        print("\n12/14 apply K-mean cluster to latitude & longitude on test data")
+        self.taxi_test_clusterKM()
+
+        print("\n13/14 scaling features on test data")
+        self.test_stdnorm()
+
+        print("\n14/14 One Hot encoding features on test")
+        self.dummy_test()
+
+        print('Done!')
+        print('Total time {:.2f} s'.format(time()-start))        
         
         
 def plot_cluster(train,  N=None):
