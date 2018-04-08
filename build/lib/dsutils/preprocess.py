@@ -462,15 +462,24 @@ class PreprocessDataFrame(object):
                 self.test['duration_sec'] = (self.test['Lpep_dropoff_datetime'] - self.test['lpep_pickup_datetime']).dt.seconds    
 
     def taxi_addTipPct(self, test=False):    
+        print('add tip percentage col')
         if not test:
-            self.train['Tip_pct'] = (self.train['Tip_amount']/self.train['Total_amount'])*100
+            self.train['Tip_pct'] = (self.train['Tip_amount']/self._train_totamt)*100
             self.train['Tip_pct'] = self.train['Tip_pct'].fillna(0)
             self.train['Tip_pct'] = self.train['Tip_pct'].apply(lambda x: 1 if x>1 else x)
         else:
-            self.test['Tip_pct'] = (self.test['Tip_amount']/self.test['Total_amount'])*100
+            self.test['Tip_pct'] = (self.test['Tip_amount']/self._test_totamt)*100
             self.test['Tip_pct'] = self.test['Tip_pct'].fillna(0)
-            self.test['Tip_pct'] = self.test['Tip_pct'].apply(lambda x: 1 if x>1 else x)            
-    
+            self.test['Tip_pct'] = self.test['Tip_pct'].apply(lambda x: 1 if x>1 else x)   
+            
+    def taxi_rmTip(self, test=False):
+        print('remove total Tip_amount')
+        if not test:
+            _ = self.train.pop('Tip_amount')
+        else:
+            _ = self.test.pop('Tip_amount')
+            
+                
     def remove_data(self):
         """for space purose remove train & test data and keeping trained models and parameters (scaler, PCA, kmeans, etc)"""
         print("""remove train & test data and keeping trained models and parameters (scaler, PCA, kmeans, etc)""")
@@ -489,7 +498,7 @@ class PreprocessDataFrame(object):
 
     #green taxi project, preprocess training data
     #pre-defined input, e.g.to_be_normalize_cols, can be replaced when calling the method
-    def Taxi_train_preprocess(self, add_XYdistance=True, kp_all_positive=False,
+    def Taxi_train_preprocess(self, add_tip_pct=False, rm_tip_amount=False, add_XYdistance=True, kp_all_positive=False,
                               pos_cols = ['Passenger_count', 'Trip_distance', 'Fare_amount', 'Extra', 'MTA_tax', 'Tip_amount',\
                                                 'Tolls_amount', 'improvement_surcharge', 'Total_amount'],
                               to_be_normalize_cols = [u'lpep_pickup_datetime', u'Lpep_dropoff_datetime', u'Pickup_longitude',\
@@ -524,7 +533,15 @@ class PreprocessDataFrame(object):
 
         print("\n5/14 remove latitude and longitude outliers")
         self.taxi_rmXYoutliers(test=False)
-
+        
+        if add_tip_pct:
+            print("\n5.2/14 add tip percentage")
+            self.taxi_addTipPct(test=False)
+        
+        if rm_tip_amount:
+            print("\n5.3/14 remove Tip_amount")
+            self.taxi_rmTip(test=False)
+        
         print("\n6/14 add duration minutes")
         self.taxi_addDuration(test=False)
 
@@ -562,7 +579,7 @@ class PreprocessDataFrame(object):
         
     #green taxi project, preprocess testing data
     #pre-defined input, e.g.to_be_normalize_cols, can be replaced when calling the method
-    def Taxi_test_preprocess(self, add_XYdistance=True, kp_all_positive=False,
+    def Taxi_test_preprocess(self, add_tip_pct=False, rm_tip_amount=False, add_XYdistance=True, kp_all_positive=False,
                               pos_cols = ['Passenger_count', 'Trip_distance', 'Fare_amount', 'Extra', 'MTA_tax', 'Tip_amount',\
                                                 'Tolls_amount', 'improvement_surcharge', 'Total_amount'],
                               to_be_normalize_cols = [u'lpep_pickup_datetime', u'Lpep_dropoff_datetime', u'Pickup_longitude',\
@@ -598,6 +615,14 @@ class PreprocessDataFrame(object):
         print("\n5/14 remove latitude and longitude outliers")
         self.taxi_rmXYoutliers(test=True)
 
+        if add_tip_pct:
+            print("\n5.2/14 add tip percentage")
+            self.taxi_addTipPct(test=True)
+        
+        if rm_tip_amount:
+            print("\n5.3/14 remove Tip_amount")
+            self.taxi_rmTip(test=True)
+        
         print("\n6/14 add duration minutes")
         self.taxi_addDuration(test=True)
 
