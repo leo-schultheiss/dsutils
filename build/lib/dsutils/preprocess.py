@@ -466,11 +466,11 @@ class PreprocessDataFrame(object):
         if not test:
             self.train['Tip_pct'] = (self.train['Tip_amount']/self._train_totamt)*100
             self.train['Tip_pct'] = self.train['Tip_pct'].fillna(0)
-            self.train['Tip_pct'] = self.train['Tip_pct'].apply(lambda x: 1 if x>1 else x)
+            #self.train['Tip_pct'] = self.train['Tip_pct'].apply(lambda x: 100 if x>100 else x)
         else:
             self.test['Tip_pct'] = (self.test['Tip_amount']/self._test_totamt)*100
             self.test['Tip_pct'] = self.test['Tip_pct'].fillna(0)
-            self.test['Tip_pct'] = self.test['Tip_pct'].apply(lambda x: 1 if x>1 else x)   
+            #self.test['Tip_pct'] = self.test['Tip_pct'].apply(lambda x: 100 if x>100 else x)   
             
     def taxi_rmTip(self, test=False):
         print('remove total Tip_amount')
