@@ -1,4 +1,5 @@
-from __future__ import division
+# author: Shichao (Richard Ji), jshichao@vt.edu
+from __future__ import division, print_function
 import pandas as pd
 from time import time
 import scipy
@@ -13,9 +14,9 @@ import math
 import warnings
 warnings.filterwarnings("ignore") 
 
-from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
-import plotly.graph_objs as go
-init_notebook_mode(connected=True)
+#from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+#import plotly.graph_objs as go
+#init_notebook_mode(connected=True)
 
 
 
@@ -59,6 +60,8 @@ class TimeAggDis(object):
         
         
 class PlotHist(object):
+    """Class helps plot multiple histogram of selected column of Pandas DataFrame
+    Remove upper outliers by specified standard deviation"""
     def __init__(self, df, col='Trip_distance', upper_std=3):
         self.data = df[col]
         self.col=col
@@ -71,6 +74,9 @@ class PlotHist(object):
         
     def update_upper_limit(self, std):
         self.upper_limit = self.data.mean()+std*self.data.std()
+        
+    def get_percentile(self, pct_list):
+        return self.data.quantile(pct_list)
     
     def plot_helper(self, *arr):
 
@@ -91,7 +97,7 @@ class PlotHist(object):
             ax.title.set_size(18)
 
         fig.subplots_adjust(hspace=0.5)    
-        fig.suptitle('histgram of '+self.col, fontsize=30)
+        fig.suptitle('histogram of '+self.col, fontsize=30)
 
 
     def hist(self, log=False):
@@ -135,8 +141,14 @@ class PlotHist(object):
         
         
         
-def plot_coordinates(df, limit=True, xlimit = [-74.10, -73.70], ylimit = [40.55, 40.95], figsize= [20, 20] ,frame=False, xy_eq_scale=True,
-                    JFK = [-73.7851, 40.6463], LGA = [-73.8685, 40.7720],EWR = [-74.1815, 40.6895]):
+def plot_coordinates(df, limit=True, xlimit = [-74.10, -73.70], ylimit = [40.55, 40.95], 
+                     figsize= [20, 20] ,frame=False, 
+                     include_pickup=True, include_dropoff=True,
+                     xy_eq_scale=True,
+                     JFK = [-73.7851, 40.6463],
+                     LGA = [-73.8685, 40.7720],
+                     EWR = [-74.1815, 40.6895]):
+    """scatter plot coordinates"""
 
     
     # xlim = [-74.10, -73.70]; ylim = [40.55, 40.95]
@@ -184,9 +196,12 @@ def plot_coordinates(df, limit=True, xlimit = [-74.10, -73.70], ylimit = [40.55,
     ylim=pickup_sy.quantile([0.002,0.997]).values
 
     fig, ax = plt.subplots(figsize=figsize)
-
-    blue = ax.scatter(pickup_x, pickup_y, s=0.05, color='c', alpha=0.5)
-    red = ax.scatter(dropoff_x, dropoff_y, s=0.05, color='red', alpha=0.15)
+    
+    
+    if include_pickup:
+        blue = ax.scatter(pickup_x, pickup_y, s=0.05, color='c', alpha=0.6)
+    if include_dropoff:
+        red = ax.scatter(dropoff_x, dropoff_y, s=0.05, color='red', alpha=0.15)
 
     
     if limit:
@@ -242,42 +257,50 @@ def plot_coordinates(df, limit=True, xlimit = [-74.10, -73.70], ylimit = [40.55,
     return ax
 
 
-def add_single_airport(df, label, sep=True):
-    df=df.copy()
-    c=['Pickup_longitude','Pickup_latitude','Dropoff_longitude','Dropoff_latitude']
-    dic={
-    'JFK' : [-73.7851, 40.6463],
-    'LGA' : [-73.8685, 40.7720],
-    'EWR' : [-74.1815, 40.6895]}
-    
-    boundary = lambda x: [x-0.01, x+0.01] 
-    boundry_helper = lambda x, y: True if (x>y[0] and x<y[1]) else False
-    
-    index_coll=[]
-    for i in c:
-        if 'long' in i: 
-            index_coll.append(set(df['VendorID'][df[i].apply(boundry_helper, y=map(boundary, dic[label])[0])].index))
-        else:
-            index_coll.append(set(df['VendorID'][df[i].apply(boundry_helper, y=map(boundary, dic[label])[1])].index))
-            
 
-            
-            
-    pickup = list(reduce(lambda x, y: x&y, index_coll[:2]))
-    dropoff = list(reduce(lambda x, y: x&y, index_coll[2:]))
-    
-    if sep:
-        df.loc[pickup,'Airport_pickup']=label
-        df.loc[dropoff,'Airport_dropoff']=label
-        
-    mutual_index= list(set(pickup)|set(dropoff))
-    df.loc[mutual_index,'Airport']=label
-    return df
     
 def add_airport(df, sep=True):
+    "add airport columns to DataFrame based on coordinations"
+    
+    def add_single_airport(df, label, sep=True):
+        "helper function, find and add one airport to two DataFrame column, Airport_pickup, Airport_dropoff"
+        
+        df=df.copy()
+        c=['Pickup_longitude','Pickup_latitude','Dropoff_longitude','Dropoff_latitude']
+        dic={
+        'JFK' : [-73.7851, 40.6463],
+        'LGA' : [-73.8685, 40.7720],
+        'EWR' : [-74.1815, 40.6895]}
+
+        boundary = lambda x: [x-0.01, x+0.01] 
+        boundry_helper = lambda x, y: True if (x>y[0] and x<y[1]) else False
+
+        index_coll=[]
+        for i in c:
+            if 'long' in i: 
+                index_coll.append(set(df['VendorID'][df[i].apply(boundry_helper, y=map(boundary, dic[label])[0])].index))
+            else:
+                index_coll.append(set(df['VendorID'][df[i].apply(boundry_helper, y=map(boundary, dic[label])[1])].index))
+
+
+        pickup = list(reduce(lambda x, y: x&y, index_coll[:2]))
+        dropoff = list(reduce(lambda x, y: x&y, index_coll[2:]))
+
+        if sep:
+            df.loc[pickup,'Airport_pickup']=label
+            df.loc[dropoff,'Airport_dropoff']=label
+
+        mutual_index= list(set(pickup)|set(dropoff))
+        df.loc[mutual_index,'Airport']=label
+        return df    
+    
+    
+    # add 3 single airports
     df = add_single_airport(df, 'JFK', sep=sep)
     df = add_single_airport(df, 'LGA', sep=sep)
     df = add_single_airport(df, 'EWR', sep=sep)
+    
+    
     if sep:
         df['Airport_pickup']=df['Airport_pickup'].fillna('Non_Airport')
         df['Airport_dropoff']=df['Airport_dropoff'].fillna('Non_Airport')
