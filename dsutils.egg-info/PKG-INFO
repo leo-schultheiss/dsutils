@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: dsutils
-Version: 0.1.7
+Version: 0.1.8
 Summary: data science utils for data preprocessing for feeding various models, pipelining, time data format converting
 Home-page: https://github.com/shichaoji/dsutils
 Author: Shichao(Richard) Ji

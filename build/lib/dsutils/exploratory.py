@@ -1,6 +1,7 @@
 from __future__ import division
 import pandas as pd
 from time import time
+import scipy
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -315,3 +316,29 @@ def add_speed(df):
     "average miles/hour"
     df['speed']=df['Trip_distance']/(df['duration_min']/60)
     return df
+
+
+
+def test_ANOVA(df, value, category, cutoff=0.05):
+    print('perform ANOVA test on Value: {} by Category: {}'.format(value, category))
+    print('return True if groups of value are statistically the same otherwise False')
+    print()
+    data_by_group=[]
+    for group in df[category].unique():
+        print(category,':',str(group).ljust(9), end=' ')    
+        data_by_group.append(df[df[category]==group][value].values)
+        print('has',len(data_by_group[-1]),'instances')
+    
+    print()
+    result = scipy.stats.f_oneway(*data_by_group)
+    _ ,p = result
+    print (result)
+    print()
+    if p > cutoff:
+        print('average values of {} by different categories :{} are statistically the SAME on significant level {}'\
+             .format(value, category, cutoff))
+        return True
+    else:
+        print('Average values of {} by different categories :{} are statistically DIFFERENT on significant level {}'\
+             .format(value, category, cutoff))
+        return False        
