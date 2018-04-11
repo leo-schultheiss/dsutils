@@ -9,8 +9,14 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.decomposition import PCA
 
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 class PreprocessDataFrame(object):
+    """ main class of data preprocessing on Pandas DataFrame for data science projects,
+    e.g it can apply label encoding, onehot encoding, PCA directly on DataFrame.
+        it saves training proprecess instances (e.g. label encoding instances) to the object to be able to apply those on testing data.
+    """
     def __init__(self, traindf, testdf = None):
         
         self.train = traindf.copy()
@@ -164,6 +170,9 @@ class PreprocessDataFrame(object):
         
         
     def train_stdnorm(self, cols):
+        """standard scaling on selected cols"""
+        import warnings
+        warnings.filterwarnings("ignore") 
         
         for i in cols:
             print('scaling '+i)
@@ -172,6 +181,11 @@ class PreprocessDataFrame(object):
             self._stdnorm[i]=scaler
             
     def test_stdnorm(self):
+        """standard scaling on cols that scaled in training"""
+        
+        import warnings
+        warnings.filterwarnings("ignore") 
+        
         if not self._stdnorm: print('train_stdnorm on training data first')
         try:
             self.test.shape
@@ -205,6 +219,8 @@ class PreprocessDataFrame(object):
         """make dummies with Onehot encoding from sklearn (After label encoding)"""
         print('before',self.train.shape)
         flag=1 if rmOne else 0
+
+
         
         for i in cols:
             print('Onehot encoding '+i)
