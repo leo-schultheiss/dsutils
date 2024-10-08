@@ -35,7 +35,7 @@ setup(
         ],
     packages = find_packages(),
     install_requires=[
-        'sklearn',
+        'scikit-learn',
         'numpy',
         'pandas',
       ],
